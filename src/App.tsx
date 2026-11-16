@@ -9,12 +9,14 @@ import {
   FileBadge2,
   GraduationCap,
   LayoutDashboard,
+  LogOut,
   MessageCircle,
   MoreHorizontal,
   Pencil,
   Plus,
   Search,
   Send,
+  Shield,
   FileText,
   Settings,
   ShieldCheck,
@@ -32,12 +34,17 @@ import { toStudentFeePayload, validateFeeFields } from '@/lib/admissionFees';
 import { AdmissionForm } from '@/components/AdmissionForm';
 import type { InformationDraft } from '@/components/InformationRecords';
 import { createAdmissionForm } from '@/lib/admissionFormState';
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { AuthPage } from '@/components/AuthPage';
+import { AdminPanel } from '@/components/AdminPanel';
+import { ParentDashboard, TeacherDashboard } from '@/components/RoleDashboards';
 
 type Attendance = { student_id: string; status: 'present' | 'absent' | 'late' | 'excused' };
-type View = 'dashboard' | 'students' | 'admission' | 'sections' | 'attendance' | 'sms' | 'promotions' | 'withdrawals' | 'certificates' | 'other' | 'reports' | 'settings';
+type View = 'dashboard' | 'students' | 'admission' | 'sections' | 'attendance' | 'sms' | 'promotions' | 'withdrawals' | 'certificates' | 'other' | 'reports' | 'settings' | 'users';
 
-const navItems: { label: string; icon: typeof LayoutDashboard; view: View }[] = [
+const adminNavItems: { label: string; icon: typeof LayoutDashboard; view: View }[] = [
   { label: 'Dashboard', icon: LayoutDashboard, view: 'dashboard' },
+  { label: 'User Accounts', icon: Shield, view: 'users' },
   { label: 'Search Student', icon: Search, view: 'students' },
   { label: 'New Admission', icon: UserPlus, view: 'admission' },
   { label: 'Search Section', icon: Users, view: 'sections' },
@@ -51,6 +58,17 @@ const navItems: { label: string; icon: typeof LayoutDashboard; view: View }[] = 
   { label: 'Settings', icon: Settings, view: 'settings' },
 ];
 
+const teacherNavItems: { label: string; icon: typeof LayoutDashboard; view: View }[] = [
+  { label: 'Dashboard', icon: LayoutDashboard, view: 'dashboard' },
+  { label: 'Search Student', icon: Search, view: 'students' },
+  { label: 'New Admission', icon: UserPlus, view: 'admission' },
+  { label: 'Daily Attendance', icon: CalendarCheck2, view: 'attendance' },
+  { label: 'Send Absentee SMS', icon: MessageCircle, view: 'sms' },
+  { label: 'Other Information', icon: BookOpenCheck, view: 'other' },
+];
+
+const navItems = adminNavItems;
+
 const moduleCards: { title: string; description: string; icon: typeof UserPlus; tone: string; view: View }[] = [
   { title: 'Admissions', description: '7 new applications', icon: UserPlus, tone: 'sky', view: 'admission' },
   { title: 'Attendance', description: '94% present today', icon: CalendarCheck2, tone: 'mint', view: 'attendance' },
@@ -60,6 +78,11 @@ const moduleCards: { title: string; description: string; icon: typeof UserPlus; 
 ];
 
 function App() {
+  return <AuthProvider><AppInner /></AuthProvider>;
+}
+
+function AppInner() {
+  const { profile, loading: authLoading, signOut } = useAuth();
   const [view, setView] = useState<View>('dashboard');
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -92,7 +115,31 @@ function App() {
   const filteredStudents = students.filter((student) => `${student.full_name} ${student.admission_number} ${student.class_name} ${student.section_name}`.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const navigate = (nextView: View) => { setView(nextView); setSearchTerm(''); };
-  const title = navItems.find((item) => item.view === view)?.label ?? 'Dashboard';
+
+  if (authLoading) {
+    return <div className="auth-loading"><Pencil size={24} strokeWidth={2.5} /><span>Loading…</span></div>;
+  }
+
+  if (!profile) {
+    return <AuthPage />;
+  }
+
+  if (profile.status === 'suspended') {
+    return (
+      <div className="auth-loading">
+        <ShieldCheck size={32} />
+        <h2>Your account has been suspended</h2>
+        <p>Please contact the school administrator to reactivate your account.</p>
+        <button className="primary-button" onClick={() => void signOut()}>Sign out</button>
+      </div>
+    );
+  }
+
+  const roleNavItems = profile.role === 'admin' ? adminNavItems : profile.role === 'teacher' ? teacherNavItems : [];
+  const title = roleNavItems.find((item) => item.view === view)?.label ?? 'Dashboard';
+
+  const initials = profile.full_name.split(' ').map((w) => w[0]).join('').slice(0, 2);
+  const roleLabel = profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
 
   const addStudent = async (student: AdmissionFormState, records: InformationRecord[]) => {
     const { data, error } = await supabase.from('school_students').insert({ ...toStudentFeePayload(student), admission_date: student.admission_date || new Date().toISOString().slice(0, 10) }).select().maybeSingle();
@@ -107,21 +154,43 @@ function App() {
     return true;
   };
 
+  if (profile.role === 'parent') {
+    return (
+      <div className="app-shell">
+        <aside className="sidebar">
+          <div className="brand"><div className="brand-mark"><Pencil size={19} strokeWidth={2.5} /></div><span>School<span className="brand-accent">Desk</span></span></div>
+          <div className="school-switcher"><div className="school-avatar">{initials}</div><div><strong>{profile.full_name}</strong><span>{roleLabel} account</span></div></div>
+          <p className="nav-label">Parent portal</p>
+          <nav><NavButton item={{ label: 'Dashboard', icon: LayoutDashboard, view: 'dashboard' }} active={view === 'dashboard'} onClick={navigate} /></nav>
+          <div className="sidebar-footer"><button className="settings-link" onClick={() => void signOut()}><LogOut size={17} /> Sign out</button></div>
+        </aside>
+        <main className="main-content">
+          <header className="topbar"><div className="breadcrumb"><span>SchoolDesk</span><span className="crumb-separator">/</span><strong>{title}</strong></div><div className="topbar-actions"><div className="profile-wrap"><button className="profile-button" onClick={() => setShowProfile(!showProfile)}><div className="profile-avatar">{initials}</div><span><small>Welcome</small><strong>{profile.full_name}</strong></span><ChevronDown size={16} /></button>{showProfile && <div className="profile-menu"><strong>{roleLabel} account</strong><button onClick={() => void signOut()}><LogOut size={14} /> Sign out</button></div>}</div></div></header>
+          <ParentDashboard onToast={setToast} />
+          {toast && <div className="toast"><Check size={17} /> {toast}</div>}
+        </main>
+      </div>
+    );
+  }
+
+  const isTeacher = profile.role === 'teacher';
+  const showAdminUsers = view === 'users' && profile.role === 'admin';
+  const splitPoint = isTeacher ? 4 : 6;
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark"><Pencil size={19} strokeWidth={2.5} /></div><span>School<span className="brand-accent">Desk</span></span></div>
-        <div className="school-switcher"><div className="school-avatar">UP</div><div><strong>Ujala Public</strong><span>Academic year 2024–25</span></div><ChevronDown size={15} /></div>
+        <div className="school-switcher"><div className="school-avatar">{initials}</div><div><strong>{profile.full_name}</strong><span>{roleLabel} account</span></div></div>
         <p className="nav-label">Workspace</p>
-        <nav>{navItems.slice(0, 6).map((item) => <NavButton key={item.view} item={item} active={view === item.view} onClick={navigate} />)}</nav>
-        <p className="nav-label nav-label-spaced">Student records</p>
-        <nav>{navItems.slice(6).map((item) => <NavButton key={item.view} item={item} active={view === item.view} onClick={navigate} />)}</nav>
-        <div className="sidebar-footer"><div className="help-card"><Sparkles size={18} /><div><strong>Need a hand?</strong><span>Visit our quick guide</span></div><ChevronDown size={15} /></div><button className="settings-link" onClick={() => navigate('settings')}><Settings size={17} /> School settings</button></div>
+        <nav>{roleNavItems.slice(0, splitPoint).map((item) => <NavButton key={item.view} item={item} active={view === item.view} onClick={navigate} />)}</nav>
+        {!isTeacher && <><p className="nav-label nav-label-spaced">Student records</p><nav>{roleNavItems.slice(splitPoint).map((item) => <NavButton key={item.view} item={item} active={view === item.view} onClick={navigate} />)}</nav></>}
+        <div className="sidebar-footer"><button className="settings-link" onClick={() => void signOut()}><LogOut size={17} /> Sign out</button></div>
       </aside>
 
       <main className="main-content">
-        <header className="topbar"><div className="breadcrumb"><span>SchoolDesk</span><span className="crumb-separator">/</span><strong>{title}</strong></div><div className="topbar-actions"><button className="icon-button" aria-label="Search" onClick={() => navigate('students')}><Search size={20} /></button><button className="icon-button notification" aria-label="Notifications"><Bell size={19} /><i /></button><div className="profile-wrap"><button className="profile-button" onClick={() => setShowProfile(!showProfile)}><div className="profile-avatar">SJ</div><span><small>Welcome back</small><strong>Sarah Jensen</strong></span><ChevronDown size={16} /></button>{showProfile && <div className="profile-menu"><strong>Principal account</strong><span>Sarah.jensen@sunrise.edu</span><button onClick={() => setShowProfile(false)}>Close menu</button></div>}</div></div></header>
-        {view === 'dashboard' ? <Dashboard students={students} counts={counts} loading={loading} onNavigate={navigate} /> : <ModuleView view={view} title={title} students={students} filteredStudents={filteredStudents} attendance={attendance} searchTerm={searchTerm} setSearchTerm={setSearchTerm} onAddStudent={addStudent} onRefresh={loadSchoolData} onToast={setToast} />}
+        <header className="topbar"><div className="breadcrumb"><span>SchoolDesk</span><span className="crumb-separator">/</span><strong>{title}</strong></div><div className="topbar-actions"><button className="icon-button" aria-label="Search" onClick={() => navigate('students')}><Search size={20} /></button><button className="icon-button notification" aria-label="Notifications"><Bell size={19} /><i /></button><div className="profile-wrap"><button className="profile-button" onClick={() => setShowProfile(!showProfile)}><div className="profile-avatar">{initials}</div><span><small>{roleLabel} account</small><strong>{profile.full_name}</strong></span><ChevronDown size={16} /></button>{showProfile && <div className="profile-menu"><strong>{roleLabel} account</strong><span>{profile.full_name}</span><button onClick={() => void signOut()}><LogOut size={14} /> Sign out</button></div>}</div></div></header>
+        {view === 'dashboard' && isTeacher ? <TeacherDashboard onNavigate={(v) => navigate(v as View)} /> : view === 'dashboard' ? <Dashboard students={students} counts={counts} loading={loading} onNavigate={navigate} /> : showAdminUsers ? <AdminPanel onToast={setToast} /> : <ModuleView view={view} title={title} students={students} filteredStudents={filteredStudents} attendance={attendance} searchTerm={searchTerm} setSearchTerm={setSearchTerm} onAddStudent={addStudent} onRefresh={loadSchoolData} onToast={setToast} />}
         {toast && <div className="toast"><Check size={17} /> {toast}</div>}
       </main>
     </div>
@@ -172,8 +241,8 @@ function ModuleView({ view, title, students, filteredStudents, attendance, searc
   const toggleSelected = (id: string) => setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const attendanceMap = new Map(attendance.map((item) => [item.student_id, item.status]));
   const actionLabel = view === 'sms' ? 'Send absentee SMS' : view === 'promotions' ? 'Promote selected' : view === 'withdrawals' ? 'Withdraw selected' : view === 'certificates' ? 'Issue certificate' : '';
-  const pageDescription = { dashboard: 'Your school overview for a happy, organized day.', settings: 'Manage the default wording used for fee and warning notices.', students: 'Find a student, check their details, or open their record.', admission: 'Add a new learner to your school roster in a few simple steps.', sections: 'Browse class groups and see who is learning together.', attendance: 'Mark today’s attendance and keep your register up to date.', sms: 'Send a kind, timely note to guardians of absent students.', promotions: 'Prepare next year’s class lists with confidence.', withdrawals: 'Keep your roster tidy when a student leaves the school.', certificates: 'Create school certificates for the moments that matter.', other: 'Helpful school details and everyday administration tools.', reports: 'See clear summaries for attendance and student records.' }[view];
-  return <div className="page module-page"><div className="module-heading"><div><span className="eyebrow">School workspace</span><h1>{title}</h1><p>{pageDescription}</p></div>{view === 'students' && <button className="primary-button" onClick={() => setFormOpen(true)}><Plus size={18} /> New admission</button>}{actionLabel && <button className="primary-button" onClick={() => onToast(`${selectedIds.length || 'No'} students selected — ready for the next step`)}><Send size={17} /> {actionLabel}</button>}</div>
+  const pageDescription: Record<View, string> = { dashboard: 'Your school overview for a happy, organized day.', users: 'Create, suspend, or remove user accounts.', settings: 'Manage the default wording used for fee and warning notices.', students: 'Find a student, check their details, or open their record.', admission: 'Add a new learner to your school roster in a few simple steps.', sections: 'Browse class groups and see who is learning together.', attendance: 'Mark today’s attendance and keep your register up to date.', sms: 'Send a kind, timely note to guardians of absent students.', promotions: 'Prepare next year’s class lists with confidence.', withdrawals: 'Keep your roster tidy when a student leaves the school.', certificates: 'Create school certificates for the moments that matter.', other: 'Helpful school details and everyday administration tools.', reports: 'See clear summaries for attendance and student records.' };
+  return <div className="page module-page"><div className="module-heading"><div><span className="eyebrow">School workspace</span><h1>{title}</h1><p>{pageDescription[view]}</p></div>{view === 'students' && <button className="primary-button" onClick={() => setFormOpen(true)}><Plus size={18} /> New admission</button>}{actionLabel && <button className="primary-button" onClick={() => onToast(`${selectedIds.length || 'No'} students selected — ready for the next step`)}><Send size={17} /> {actionLabel}</button>}</div>
     {view === 'admission' || (view === 'students' && formOpen) ? <AdmissionForm form={form} setForm={setForm} infoRecords={infoRecords} onSaveInfo={saveInfoRecord} onDeleteInfo={deleteInfoRecord} onClear={clearAdmission} onSubmit={submitAdmission} onAddToSession={addToSession} onCancel={() => setFormOpen(false)} onToast={onToast} onAutoGenerate={() => { const highestNumber = students.reduce((highest, student) => Math.max(highest, Number(student.admission_number.match(/(\d+)$/)?.[1] ?? 0)), 0); setForm({ ...form, admission_number: `SD-${highestNumber + 1}` }); onToast('Admission number generated'); }} /> : null}
     {view === 'settings' ? <NoticeTemplateSettings onToast={onToast} /> : view === 'students' ? <StudentSearch students={students} onToast={onToast} onRefresh={onRefresh} /> : view === 'attendance' ? <AttendanceTable students={students} attendanceMap={attendanceMap} onMark={markAttendance} /> : view === 'sections' ? <SectionGrid students={students} onSelect={(className) => setSearchTerm(className)} /> : view === 'reports' ? <Reports students={students} attendance={attendance} /> : ['sms', 'promotions', 'withdrawals', 'certificates'].includes(view) ? <SelectableList students={filteredStudents} selectedIds={selectedIds} onToggle={toggleSelected} view={view} /> : view === 'other' ? <OtherInformation onToast={onToast} /> : <div className="panel roster-panel"><div className="table-toolbar"><div className="search-field"><Search size={18} /><input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search by name, admission number or class" /></div><span className="result-count">{filteredStudents.length} students</span></div><StudentTable students={filteredStudents} /></div>}
   </div>;
