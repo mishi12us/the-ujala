@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { AdmissionFormState, InformationRecord } from '@/lib/schoolTypes';
 import { buildAdmissionCsv } from '@/lib/admissionFormState';
 import { AdmissionOtherInfoFields } from '@/components/AdmissionOtherInfoFields';
+import { AdmissionDocTabs } from '@/components/AdmissionDocTabs';
 import { DropdownWithAdd } from '@/components/DropdownWithAdd';
 import { InformationRecords, type InformationDraft } from '@/components/InformationRecords';
 
@@ -26,7 +27,7 @@ type AdmissionFormProps = {
 export function AdmissionForm({ form, setForm, infoRecords, infoLoading = false, infoLoadError = false, onSaveInfo, onDeleteInfo, onSubmit, onAddToSession, onClear, onCancel, onToast, onAutoGenerate }: AdmissionFormProps) {
   const update = (key: keyof AdmissionFormState, value: string) => setForm({ ...form, [key]: value });
   const patch = (changes: Partial<AdmissionFormState>) => setForm({ ...form, ...changes });
-  const [activeTab, setActiveTab] = useState<'info' | 'other'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'other' | 'leaving' | 'submitted' | 'issued'>('info');
   const [dropdownOptions, setDropdownOptions] = useState<Record<string, string[]>>({ student_group: [], subject_group: [], house: [], religion: [], father_profession: [], mother_tongue: [], information_type: [] });
   const loadDropdownOptions = () => { void supabase.from('school_admission_options').select('category, label').order('label').then(({ data }) => { if (data) { const grouped: Record<string, string[]> = { student_group: [], subject_group: [], house: [], religion: [], father_profession: [], mother_tongue: [], information_type: [] }; for (const row of data as { category: string; label: string }[]) { if (grouped[row.category]) grouped[row.category].push(row.label); } setDropdownOptions(grouped); } }); };
   useEffect(loadDropdownOptions, []);
@@ -53,7 +54,7 @@ export function AdmissionForm({ form, setForm, infoRecords, infoLoading = false,
 
   return <form className="panel admission-form" onSubmit={onSubmit}>
     <div className="form-heading"><div><span className="eyebrow">{onClear ? 'New admission' : 'Edit student'}</span><h2>Student Admission Form</h2></div><button type="button" className="close-button" onClick={onCancel} aria-label="Close admission form"><X size={18} /></button></div>
-    <div className="admission-tabs"><button type="button" className={activeTab === 'info' ? 'active' : ''} onClick={() => setActiveTab('info')}><ClipboardCheck size={16} /> Admission Info</button><button type="button" className={activeTab === 'other' ? 'active' : ''} onClick={() => setActiveTab('other')}><Wallet size={16} /> Other Info</button></div>
+    <div className="admission-tabs"><button type="button" className={activeTab === 'info' ? 'active' : ''} onClick={() => setActiveTab('info')}><ClipboardCheck size={16} /> Admission Info</button><button type="button" className={activeTab === 'other' ? 'active' : ''} onClick={() => setActiveTab('other')}><Wallet size={16} /> Other Info</button><button type="button" className={activeTab === 'leaving' ? 'active' : ''} onClick={() => setActiveTab('leaving')}><FileText size={16} /> Leaving Info</button><button type="button" className={activeTab === 'submitted' ? 'active' : ''} onClick={() => setActiveTab('submitted')}><FileText size={16} /> Submitted Doc</button><button type="button" className={activeTab === 'issued' ? 'active' : ''} onClick={() => setActiveTab('issued')}><FileText size={16} /> Issued Doc</button></div>
     {activeTab === 'info' && <div className="form-grid admission-info-grid">
       <div className="get-field"><label>Admission No.</label><div><input required value={form.admission_number} onChange={(event) => update('admission_number', event.target.value)} />{onAutoGenerate && <button type="button" className="secondary-button" onClick={onAutoGenerate}><Sparkles size={14} /> Auto Generate</button>}</div></div>
       <label>Admission Date<input required type="date" value={form.admission_date} onChange={(event) => update('admission_date', event.target.value)} /></label>
@@ -86,6 +87,7 @@ export function AdmissionForm({ form, setForm, infoRecords, infoLoading = false,
       <label>Guardian Phone<input required value={form.guardian_phone} onChange={(event) => update('guardian_phone', event.target.value)} /></label>
     </div>}
     {activeTab === 'other' && <AdmissionOtherInfoFields form={form} update={update} patch={patch} dropdownOptions={dropdownOptions} onOptionsChanged={loadDropdownOptions} onToast={onToast} />}
+    {(activeTab === 'leaving' || activeTab === 'submitted' || activeTab === 'issued') && <AdmissionDocTabs form={form} update={update} />}
     <div className="print-section no-print mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <div><span className="eyebrow">Print and export</span><p className="text-sm text-slate-600">Share a copy of this admission form.</p></div>
       <div className="admission-action-buttons">

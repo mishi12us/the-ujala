@@ -43,6 +43,22 @@ export type Student = {
   fee_concession_percentage?: number | null;
   fee_concession_amount?: number | null;
   fine_exempt?: boolean | null;
+  // Leaving Info
+  leaving_date?: string | null;
+  leaving_reason?: string | null;
+  leaving_remarks?: string | null;
+  // Submitted Documents
+  submitted_b_form?: string | null;
+  submitted_previous_tc?: string | null;
+  submitted_birth_certificate?: string | null;
+  submitted_photos?: string | null;
+  submitted_other_docs?: string | null;
+  // Issued Documents
+  issued_tc_number?: string | null;
+  issued_tc_date?: string | null;
+  issued_character_certificate?: string | null;
+  issued_migration_certificate?: string | null;
+  issued_other_docs?: string | null;
   data_source?: 'current_session' | 'archive' | null;
   clearance_status?: 'cleared' | 'not_clear' | null;
   fee_balance: number;
@@ -115,4 +131,20 @@ export type AdmissionFormState = {
   fee_concession_percentage: string;
   fee_concession_amount: string;
   fine_exempt: boolean;
+  // Leaving Info
+  leaving_date: string;
+  leaving_reason: string;
+  leaving_remarks: string;
+  // Submitted Documents
+  submitted_b_form: string;
+  submitted_previous_tc: string;
+  submitted_birth_certificate: string;
+  submitted_photos: string;
+  submitted_other_docs: string;
+  // Issued Documents
+  issued_tc_number: string;
+  issued_tc_date: string;
+  issued_character_certificate: string;
+  issued_migration_certificate: string;
+  issued_other_docs: string;
 };

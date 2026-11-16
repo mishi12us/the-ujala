@@ -2,7 +2,7 @@ import type { AdmissionFormState, Student } from '@/lib/schoolTypes';
 
 export function createAdmissionForm(students: Student[]): AdmissionFormState {
   const highestNumber = students.reduce((highest, student) => Math.max(highest, Number(student.admission_number.match(/(\d+)$/)?.[1] ?? 0)), 2414);
-  return { admission_number: `SD-${highestNumber + 1}`, admission_date: new Date().toISOString().slice(0, 10), date_of_birth: '', admitted_in_class: 'Class 5', student_name_prefix: '', full_name: '', father_name_prefix: '', fathers_name: '', mother_name: '', fathers_cnic: '', student_form_b: '', class_name: 'Class 5', section_name: 'B', last_school: '', last_class: '', gender: 'Girl', status: 'active', religion: '', nationality: 'Indian', student_group: '', subject_group: '', house: '', place_of_birth: '', guardian_name: '', guardian_phone: '', photo_url: '', data_source: 'current_session', full_name_urdu: '', fathers_name_urdu: '', mother_name_urdu: '', current_address: '', permanent_address: '', father_contact_number: '', messaging_number: '', father_profession: '', mother_tongue: '', guardian_relationship: '', guardian_cnic: '', tuition_fee: '', fee_concession_percentage: '', fee_concession_amount: '', fine_exempt: false };
+  return { admission_number: `SD-${highestNumber + 1}`, admission_date: new Date().toISOString().slice(0, 10), date_of_birth: '', admitted_in_class: 'Class 5', student_name_prefix: '', full_name: '', father_name_prefix: '', fathers_name: '', mother_name: '', fathers_cnic: '', student_form_b: '', class_name: 'Class 5', section_name: 'B', last_school: '', last_class: '', gender: 'Girl', status: 'active', religion: '', nationality: 'Indian', student_group: '', subject_group: '', house: '', place_of_birth: '', guardian_name: '', guardian_phone: '', photo_url: '', data_source: 'current_session', full_name_urdu: '', fathers_name_urdu: '', mother_name_urdu: '', current_address: '', permanent_address: '', father_contact_number: '', messaging_number: '', father_profession: '', mother_tongue: '', guardian_relationship: '', guardian_cnic: '', tuition_fee: '', fee_concession_percentage: '', fee_concession_amount: '', fine_exempt: false, leaving_date: '', leaving_reason: '', leaving_remarks: '', submitted_b_form: '', submitted_previous_tc: '', submitted_birth_certificate: '', submitted_photos: '', submitted_other_docs: '', issued_tc_number: '', issued_tc_date: '', issued_character_certificate: '', issued_migration_certificate: '', issued_other_docs: '' };
 }
 
 export function admissionFormFromStudent(student: Student): AdmissionFormState {
@@ -50,6 +50,19 @@ export function admissionFormFromStudent(student: Student): AdmissionFormState {
     fee_concession_percentage: text(student.fee_concession_percentage),
     fee_concession_amount: text(student.fee_concession_amount),
     fine_exempt: student.fine_exempt ?? false,
+    leaving_date: text(student.leaving_date),
+    leaving_reason: text(student.leaving_reason),
+    leaving_remarks: text(student.leaving_remarks),
+    submitted_b_form: text(student.submitted_b_form),
+    submitted_previous_tc: text(student.submitted_previous_tc),
+    submitted_birth_certificate: text(student.submitted_birth_certificate),
+    submitted_photos: text(student.submitted_photos),
+    submitted_other_docs: text(student.submitted_other_docs),
+    issued_tc_number: text(student.issued_tc_number),
+    issued_tc_date: text(student.issued_tc_date),
+    issued_character_certificate: text(student.issued_character_certificate),
+    issued_migration_certificate: text(student.issued_migration_certificate),
+    issued_other_docs: text(student.issued_other_docs),
   };
 }
 
