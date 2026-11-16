@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
-  AlertCircle, Ban, Check, Loader2, Plus, Search, Shield, Trash2, UserPlus, Users, X,
+  AlertCircle, Ban, Check, KeyRound, Loader2, Plus, Search, Shield, Trash2, UserPlus, Users, X,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth, type UserProfile, type UserRole } from '@/lib/auth';
@@ -13,6 +13,7 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [showLink, setShowLink] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [links, setLinks] = useState<Record<string, string[]>>({});
 
@@ -89,6 +90,9 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
           <button className="secondary-button" onClick={() => setShowLink(true)}>
             <Plus size={16} /> Link parent to student
           </button>
+          <button className="secondary-button" onClick={() => setShowPassword(true)}>
+            <KeyRound size={16} /> Change password
+          </button>
           <button className="primary-button" onClick={() => setShowCreate(true)}>
             <UserPlus size={17} /> New account
           </button>
@@ -155,7 +159,15 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
                           </button>
                         </>
                       )}
-                      {u.id === profile?.id && <span className="muted-cell">You</span>}
+                      {u.id === profile?.id && (
+                        <button
+                          className="row-action-btn"
+                          onClick={() => setShowPassword(true)}
+                          title="Change your password"
+                        >
+                          <KeyRound size={15} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -170,6 +182,12 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
         <CreateUserModal
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); void loadUsers(); }}
+          onToast={onToast}
+        />
+      )}
+      {showPassword && (
+        <ChangePasswordModal
+          onClose={() => setShowPassword(false)}
           onToast={onToast}
         />
       )}
@@ -347,6 +365,58 @@ function LinkParentModal({ users, students, existingLinks, onClose, onLinked, on
             {busy ? <Loader2 size={16} className="auth-spinner" /> : <Check size={16} />} Save links
           </button>
         </div>
+      </section>
+    </div>
+  );
+}
+
+function ChangePasswordModal({ onClose, onToast }: {
+  onClose: () => void;
+  onToast: (message: string) => void;
+}) {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (newPassword.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (newPassword !== confirmPassword) { setError('Passwords do not match.'); return; }
+    setBusy(true);
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    if (updateError) { setError(updateError.message); setBusy(false); return; }
+
+    onToast('Your password has been updated.');
+    onClose();
+  };
+
+  return (
+    <div className="notice-overlay" onClick={onClose}>
+      <section className="notice-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="notice-preview-top">
+          <span className="eyebrow"><KeyRound size={14} /> Change password</span>
+          <button className="close-button" onClick={onClose}><X size={18} /></button>
+        </div>
+        <h2 className="mt-3 text-lg font-bold text-slate-800">Change your password</h2>
+        <p className="mt-1 text-sm text-slate-500">Choose a new password to replace the temporary one.</p>
+        <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
+          <label className="control-field">New password
+            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required placeholder="At least 6 characters" autoComplete="new-password" />
+          </label>
+          <label className="control-field">Confirm new password
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="Re-enter the new password" autoComplete="new-password" />
+          </label>
+          {error && <div className="auth-error"><AlertCircle size={16} /><span>{error}</span></div>}
+          <div className="notice-preview-actions">
+            <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+            <button type="submit" className="primary-button" disabled={busy}>
+              {busy ? <Loader2 size={16} className="auth-spinner" /> : <KeyRound size={16} />} Update password
+            </button>
+          </div>
+        </form>
       </section>
     </div>
   );
