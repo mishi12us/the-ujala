@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { GraduationCap, Lock, User as UserIcon, AlertCircle, Loader2, Shield } from 'lucide-react';
+import { Lock, User as UserIcon, AlertCircle, Loader2, Shield } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { SCHOOL_NAME } from '@/lib/noticeText';
@@ -70,7 +70,7 @@ export function AuthPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="auth-brand-mark"><GraduationCap size={28} strokeWidth={2} /></div>
+          <div className="auth-brand-mark"><img src="/New_LOGO_Final.PNG" alt="SchoolDesk logo" /></div>
           <h1>{SCHOOL_NAME}</h1>
           <p>School management portal</p>
         </div>

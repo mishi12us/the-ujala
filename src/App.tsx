@@ -12,7 +12,6 @@ import {
   LogOut,
   MessageCircle,
   MoreHorizontal,
-  Pencil,
   Plus,
   Search,
   Send,
@@ -117,7 +116,7 @@ function AppInner() {
   const navigate = (nextView: View) => { setView(nextView); setSearchTerm(''); };
 
   if (authLoading) {
-    return <div className="auth-loading"><Pencil size={24} strokeWidth={2.5} /><span>Loading…</span></div>;
+    return <div className="auth-loading"><div className="brand-mark"><img src="/New_LOGO_Final.PNG" alt="SchoolDesk" /></div><span>Loading…</span></div>;
   }
 
   if (!profile) {
@@ -158,7 +157,7 @@ function AppInner() {
     return (
       <div className="app-shell">
         <aside className="sidebar">
-          <div className="brand"><div className="brand-mark"><Pencil size={19} strokeWidth={2.5} /></div><span>School<span className="brand-accent">Desk</span></span></div>
+          <div className="brand"><div className="brand-mark"><img src="/New_LOGO_Final.PNG" alt="SchoolDesk" /></div><span>School<span className="brand-accent">Desk</span></span></div>
           <div className="school-switcher"><div className="school-avatar">{initials}</div><div><strong>{profile.full_name}</strong><span>{roleLabel} account</span></div></div>
           <p className="nav-label">Parent portal</p>
           <nav><NavButton item={{ label: 'Dashboard', icon: LayoutDashboard, view: 'dashboard' }} active={view === 'dashboard'} onClick={navigate} /></nav>
@@ -180,7 +179,7 @@ function AppInner() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand"><div className="brand-mark"><Pencil size={19} strokeWidth={2.5} /></div><span>School<span className="brand-accent">Desk</span></span></div>
+        <div className="brand"><div className="brand-mark"><img src="/New_LOGO_Final.PNG" alt="SchoolDesk" /></div><span>School<span className="brand-accent">Desk</span></span></div>
         <div className="school-switcher"><div className="school-avatar">{initials}</div><div><strong>{profile.full_name}</strong><span>{roleLabel} account</span></div></div>
         <p className="nav-label">Workspace</p>
         <nav>{roleNavItems.slice(0, splitPoint).map((item) => <NavButton key={item.view} item={item} active={view === item.view} onClick={navigate} />)}</nav>
@@ -269,6 +268,6 @@ function AttendanceTable({ students, attendanceMap, onMark }: { students: Studen
 
 function SectionGrid({ students, onSelect }: { students: Student[]; onSelect: (className: string) => void }) { const sections = Array.from(new Set(students.map((student) => `${student.class_name} · Section ${student.section_name}`))); return <div className="section-cards">{sections.length ? sections.map((section, index) => { const className = section.split(' · ')[0]; const count = students.filter((student) => `${student.class_name} · Section ${student.section_name}` === section).length; return <button className={`section-card tone-${index % 4}`} key={section} onClick={() => onSelect(className)}><div className="section-icon"><Users size={23} /></div><div><h3>{section}</h3><p>{count} students enrolled</p></div><span>→</span></button>; }) : <div className="empty-state large">No sections yet.</div>}</div>; }
 function SelectableList({ students, selectedIds, onToggle, view }: { students: Student[]; selectedIds: string[]; onToggle: (id: string) => void; view: View }) { return <div className="panel selectable-panel"><div className="list-note"><Sparkles size={18} /><span>Select one or more students to continue. Their family details are ready when you are.</span></div>{students.map((student, index) => <button className={`selectable-row ${selectedIds.includes(student.id) ? 'selected' : ''}`} key={student.id} onClick={() => onToggle(student.id)}><span className="check-box">{selectedIds.includes(student.id) && <Check size={15} />}</span><div className={`student-avatar avatar-${index % 4}`}>{student.full_name.split(' ').map((word) => word[0]).join('').slice(0, 2)}</div><div className="selectable-name"><strong>{student.full_name}</strong><span>{student.class_name} · {student.section_name} · Guardian: {student.guardian_name}</span></div><span className={`context-tag ${view}`}>{view === 'sms' ? student.guardian_phone : view === 'certificates' ? 'Request ready' : view === 'promotions' ? 'Class 6 next year' : 'Active record'}</span></button>)}</div>; }
-function Reports({ students, attendance }: { students: Student[]; attendance: Attendance[] }) { const present = attendance.filter((item) => item.status === 'present').length; return <div className="report-grid"><div className="report-card report-highlight"><span className="eyebrow light">Attendance report</span><h2>A healthy rhythm, day by day.</h2><p>Your school is building a strong attendance habit this term.</p><div className="report-number">{attendance.length ? Math.round((present / attendance.length) * 100) : 0}<small>% overall</small></div></div><div className="report-card"><span className="eyebrow">Student records</span><h2>Enrolment at a glance</h2><div className="bar-stat"><span><b>{students.filter((student) => student.gender === 'Girl').length}</b> Girls</span><i><em style={{ width: `${students.length ? students.filter((student) => student.gender === 'Girl').length / students.length * 100 : 0}%` }} /></i></div><div className="bar-stat"><span><b>{students.filter((student) => student.gender === 'Boy').length}</b> Boys</span><i><em className="coral-bar" style={{ width: `${students.length ? students.filter((student) => student.gender === 'Boy').length / students.length * 100 : 0}%` }} /></i></div><div className="report-foot">{students.length} active students across the school</div></div></div>; }
+function Reports({ students, attendance }: { students: Student[]; attendance: Attendance[] }) { const present = attendance.filter((item) => item.status === 'present').length; return <div className="page module-page"><div className="report-doc-header"><img src="/New_LOGO_Final.PNG" alt="SchoolDesk" /><div><strong>SchoolDesk</strong><span>Official school report</span></div></div><div className="report-grid"><div className="report-card report-highlight"><span className="eyebrow light">Attendance report</span><h2>A healthy rhythm, day by day.</h2><p>Your school is building a strong attendance habit this term.</p><div className="report-number">{attendance.length ? Math.round((present / attendance.length) * 100) : 0}<small>% overall</small></div></div><div className="report-card"><span className="eyebrow">Student records</span><h2>Enrolment at a glance</h2><div className="bar-stat"><span><b>{students.filter((student) => student.gender === 'Girl').length}</b> Girls</span><i><em style={{ width: `${students.length ? students.filter((student) => student.gender === 'Girl').length / students.length * 100 : 0}%` }} /></i></div><div className="bar-stat"><span><b>{students.filter((student) => student.gender === 'Boy').length}</b> Boys</span><i><em className="coral-bar" style={{ width: `${students.length ? students.filter((student) => student.gender === 'Boy').length / students.length * 100 : 0}%` }} /></i></div><div className="report-foot">{students.length} active students across the school</div></div></div></div>; }
 
 export default App;

@@ -95,7 +95,7 @@ export function NoticeModal({ language: initialLanguage, templates, students, on
             <textarea dir={isUrdu ? 'rtl' : 'ltr'} value={text} onChange={(event) => setText(event.target.value)} rows={6} />
           </label>
           <div className="notice-paper">
-            <div className="notice-school-mark">UP</div>
+            <div className="notice-school-mark"><img src="/New_LOGO_Final.PNG" alt="SchoolDesk logo" /></div>
             <h2>{heading}</h2>
             <p>{renderNoticeText(text, language, recipient?.full_name ?? null) || (isUrdu ? 'اپنا پیغام یہاں لکھیں۔' : 'Write your notice message above.')}</p>
             <div className="notice-signoff">{isUrdu ? SCHOOL_NAME_UR : SCHOOL_NAME}<small>{isUrdu ? 'پرنسپل کا دفتر' : 'Principal’s Office'}</small></div>
