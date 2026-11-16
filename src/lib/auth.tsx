@@ -7,6 +7,7 @@ export type UserStatus = 'active' | 'suspended';
 
 export type UserProfile = {
   id: string;
+  username: string;
   full_name: string;
   role: UserRole;
   status: UserStatus;
@@ -18,13 +19,16 @@ type AuthContextValue = {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<{ error: string | null }>;
+  signIn: (username: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function usernameToEmail(username: string): string {
+  return `${username.trim().toLowerCase()}@schooldesk.local`;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -34,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (userId: string): Promise<UserProfile | null> => {
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('id, full_name, role, status, created_at')
+      .select('id, username, full_name, role, status, created_at')
       .eq('id', userId)
       .maybeSingle();
     if (error) return null;
@@ -78,32 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { sub.subscription.unsubscribe(); };
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return { error: null };
-  };
-
-  const signUp = async (
-    email: string,
-    password: string,
-    fullName: string,
-    role: UserRole,
-  ): Promise<{ error: string | null }> => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error: error.message };
-    if (!data.user) return { error: 'Sign-up failed — no user returned.' };
-
-    const { error: profileError } = await supabase.from('user_profiles').insert({
-      id: data.user.id,
-      full_name: fullName,
-      role,
-      status: 'active',
+  const signIn = async (username: string, password: string): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(username),
+      password,
     });
-    if (profileError) {
-      return { error: 'Account created, but the profile could not be saved. Please contact an administrator.' };
-    }
-
+    if (error) return { error: 'Invalid username or password.' };
     return { error: null };
   };
 
@@ -114,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, profile, loading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -73,6 +73,11 @@
 .link-student-list { max-height: 320px; overflow-y: auto; margin-top: 14px; border: 1px solid #edf2f4; border-radius: 10px; }
 .link-student-list .selectable-row { border-bottom: 1px solid #edf2f4; padding: 10px 12px; }
 
+.auth-hint { text-align: center; color: #b0bdc4; font-size: 11px; margin-top: 14px; }
+.auth-divider { display: flex; align-items: center; gap: 10px; margin: 22px 0 16px; color: #cfdae1; font-size: 11px; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #e7eef1; }
+.auth-bootstrap-header { display: flex; align-items: center; gap: 8px; color: #277a9b; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+
 @media (max-width: 760px) {
   .admin-stats { flex-direction: column; }
   .parent-page .parent-children-grid { grid-template-columns: 1fr; }

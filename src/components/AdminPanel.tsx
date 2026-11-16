@@ -20,7 +20,7 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
     setLoading(true);
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('id, full_name, role, status, created_at')
+      .select('id, username, full_name, role, status, created_at')
       .order('created_at', { ascending: false });
     if (!error && data) setUsers(data as UserProfile[]);
     setLoading(false);
@@ -66,8 +66,8 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
   };
 
   const removeUser = async (user: UserProfile) => {
-    const { error } = await supabase.from('user_profiles').delete().eq('id', user.id);
-    if (error) { onToast('Could not remove this account.'); return; }
+    const { error } = await supabase.rpc('admin_remove_user', { p_user_id: user.id });
+    if (error) { onToast(error.message || 'Could not remove this account.'); return; }
     setUsers((prev) => prev.filter((u) => u.id !== user.id));
     onToast(`${user.full_name}'s account was removed.`);
   };
@@ -114,7 +114,7 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Name</th><th>Role</th><th>Status</th><th>Linked children</th><th>Created</th><th /></tr>
+              <tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Linked children</th><th /></tr>
             </thead>
             <tbody>
               {filtered.map((u) => (
@@ -125,6 +125,7 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
                       <strong>{u.full_name}</strong>
                     </div>
                   </td>
+                  <td className="muted-cell">{u.username}</td>
                   <td><span className={`role-badge role-${u.role}`}>{roleBadge(u.role)}</span></td>
                   <td>
                     <span className={`status-pill ${u.status === 'suspended' ? 'status-suspended' : ''}`}>
@@ -134,7 +135,6 @@ export function AdminPanel({ onToast }: { onToast: (message: string) => void }) 
                   <td className="muted-cell">
                     {u.role === 'parent' ? `${(links[u.id] ?? []).length} linked` : '—'}
                   </td>
-                  <td className="muted-cell">{new Date(u.created_at).toLocaleDateString()}</td>
                   <td>
                     <div className="row-actions">
                       {u.id !== profile?.id && (
@@ -193,7 +193,7 @@ function CreateUserModal({ onClose, onCreated, onToast }: {
   onToast: (message: string) => void;
 }) {
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('teacher');
   const [busy, setBusy] = useState(false);
@@ -203,25 +203,23 @@ function CreateUserModal({ onClose, onCreated, onToast }: {
     e.preventDefault();
     setError('');
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (username.trim().length < 3) { setError('Username must be at least 3 characters.'); return; }
     setBusy(true);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password });
-    if (signUpError) { setError(signUpError.message); setBusy(false); return; }
-    if (!data.user) { setError('Account creation failed.'); setBusy(false); return; }
-
-    const { error: profileError } = await supabase.from('user_profiles').insert({
-      id: data.user.id,
-      full_name: fullName.trim(),
-      role,
-      status: 'active',
+    const { error: rpcError } = await supabase.rpc('admin_create_user', {
+      p_username: username.trim().toLowerCase(),
+      p_password: password,
+      p_full_name: fullName.trim(),
+      p_role: role,
     });
-    if (profileError) {
-      setError('The auth account was created but the profile could not be saved. The user may need to be added manually.');
+
+    if (rpcError) {
+      setError(rpcError.message);
       setBusy(false);
       return;
     }
 
-    onToast(`${fullName.trim()} was created as ${role}.`);
+    onToast(`${fullName.trim()} was created as ${role}. They can sign in with username "${username.trim().toLowerCase()}".`);
     onCreated();
   };
 
@@ -233,13 +231,13 @@ function CreateUserModal({ onClose, onCreated, onToast }: {
           <button className="close-button" onClick={onClose}><X size={18} /></button>
         </div>
         <h2 className="mt-3 text-lg font-bold text-slate-800">Create a new account</h2>
-        <p className="mt-1 text-sm text-slate-500">The new user will be able to sign in with the email and password below.</p>
+        <p className="mt-1 text-sm text-slate-500">The new user will sign in with the username and password below.</p>
         <form onSubmit={submit} className="mt-4 flex flex-col gap-4">
           <label className="control-field">Full name
             <input value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="Enter full name" />
           </label>
-          <label className="control-field">Email address
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@school.edu" />
+          <label className="control-field">Username
+            <input value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="e.g. teacher1, parent.john" />
           </label>
           <label className="control-field">Temporary password
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="At least 6 characters" />
