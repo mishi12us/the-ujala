@@ -1,11 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { GraduationCap, Lock, User as UserIcon, AlertCircle, Loader2, Shield } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { SCHOOL_NAME } from '@/lib/noticeText';
 
 export function AuthPage() {
-  const { signIn } = useAuth();
+  const { signIn, bootstrapAdmin } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,6 +19,16 @@ export function AuthPage() {
   const [bsError, setBsError] = useState('');
   const [bsBusy, setBsBusy] = useState(false);
 
+  // Check if bootstrap is available (no admin exists yet)
+  useEffect(() => {
+    supabase.rpc('bootstrap_check').then(({ data }) => {
+      if (data === false) {
+        // Admin already exists — hide bootstrap link
+        setShowBootstrap(false);
+      }
+    });
+  }, []);
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
@@ -28,26 +38,21 @@ export function AuthPage() {
     setBusy(false);
   };
 
-  const bootstrapAdmin = async (e: FormEvent) => {
+  const bootstrapSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setBsError('');
     if (bsPassword.length < 6) { setBsError('Password must be at least 6 characters.'); return; }
     if (bsUsername.trim().length < 3) { setBsError('Username must be at least 3 characters.'); return; }
     setBsBusy(true);
 
-    const { data, error: rpcError } = await supabase.rpc('bootstrap_first_admin', {
-      p_username: bsUsername.trim().toLowerCase(),
-      p_password: bsPassword,
-      p_full_name: bsFullName.trim(),
-    });
+    const { error: createError } = await bootstrapAdmin(
+      bsUsername.trim().toLowerCase(),
+      bsPassword,
+      bsFullName.trim(),
+    );
 
-    if (rpcError) {
-      setBsError(rpcError.message);
-      setBsBusy(false);
-      return;
-    }
-    if (!data) {
-      setBsError('An admin account already exists. Please sign in instead.');
+    if (createError) {
+      setBsError(createError);
       setBsBusy(false);
       return;
     }
@@ -117,7 +122,7 @@ export function AuthPage() {
         <div className="auth-divider"><span>or</span></div>
 
         {showBootstrap ? (
-          <form onSubmit={bootstrapAdmin} className="auth-form">
+          <form onSubmit={bootstrapSubmit} className="auth-form">
             <div className="auth-bootstrap-header">
               <Shield size={18} />
               <span>Create the first administrator</span>

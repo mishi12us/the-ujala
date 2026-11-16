@@ -7,7 +7,7 @@ import { useAuth, type UserProfile, type UserRole } from '@/lib/auth';
 import type { Student } from '@/lib/schoolTypes';
 
 export function AdminPanel({ onToast }: { onToast: (message: string) => void }) {
-  const { profile } = useAuth();
+  const { profile, createUser } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -210,6 +210,7 @@ function CreateUserModal({ onClose, onCreated, onToast }: {
   onCreated: () => void;
   onToast: (message: string) => void;
 }) {
+  const { createUser } = useAuth();
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -224,15 +225,15 @@ function CreateUserModal({ onClose, onCreated, onToast }: {
     if (username.trim().length < 3) { setError('Username must be at least 3 characters.'); return; }
     setBusy(true);
 
-    const { error: rpcError } = await supabase.rpc('admin_create_user', {
-      p_username: username.trim().toLowerCase(),
-      p_password: password,
-      p_full_name: fullName.trim(),
-      p_role: role,
-    });
+    const { error: createError } = await createUser(
+      username.trim().toLowerCase(),
+      password,
+      fullName.trim(),
+      role,
+    );
 
-    if (rpcError) {
-      setError(rpcError.message);
+    if (createError) {
+      setError(createError);
       setBusy(false);
       return;
     }
